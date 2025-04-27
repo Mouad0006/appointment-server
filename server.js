@@ -1,51 +1,39 @@
 // server.js
+
 import express from 'express';
-import pg from 'pg';
-import dotenv from 'dotenv';
 import cors from 'cors';
 
-dotenv.config();
-
-const { Pool } = pg;
 const app = express();
-const port = process.env.PORT || 3000;
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+const PORT = process.env.PORT || 3000;
+const SECRET_KEY = process.env.SECRET_KEY || 'Mouad2006';
 
 app.use(cors());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json()); // Body parser JSON
 
-app.post('/submit', async (req, res) => {
-  const { selectedDate, slotId, token, secretKey } = req.body;
+app.post('/submit', (req, res) => {
+    const { selectedDate, slotId, status, secretKey } = req.body;
 
-  if (!selectedDate || !slotId || !token || !secretKey) {
-    return res.status(400).json({ error: 'Missing fields' });
-  }
+    if (secretKey !== SECRET_KEY) {
+        return res.status(403).send('Forbidden: Invalid Secret Key');
+    }
 
-  if (secretKey !== process.env.SECRET_KEY) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
+    if (!selectedDate || !slotId || !status) {
+        return res.status(400).send('Bad Request: Missing Fields');
+    }
 
-  try {
-    await pool.query(
-      'INSERT INTO appointments (selected_date, slot_id, token, created_at) VALUES ($1, $2, $3, NOW())',
-      [selectedDate, slotId, token]
-    );
-    res.json({ status: 'OK' });
-  } catch (err) {
-    console.error('Database error:', err);
-    res.status(500).json({ error: 'Database insertion failed' });
-  }
+    console.log('✅ Appointment Attempt:', {
+        selectedDate,
+        slotId,
+        status
+    });
+
+    res.status(200).send('Logged Successfully');
 });
 
 app.get('/', (req, res) => {
-  res.send('Server is running ✅');
+    res.send('Server Working ✅');
 });
 
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
